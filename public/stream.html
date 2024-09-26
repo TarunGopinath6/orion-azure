@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phone Video Stream</title>
+    <style>
+      #permissionStatus {
+        margin-top: 10px;
+        font-weight: bold;
+      }
+      .error {
+        color: red;
+      }
+      .success {
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Stream Video from Phone</h1>
+    <video
+      id="videoElement"
+      width="640"
+      height="480"
+      autoplay
+      muted
+      playsinline
+    ></video>
+    <br />
+    <button id="permissionButton">Request Camera Permission</button>
+    <button id="startButton" disabled>Start Streaming</button>
+    <div id="permissionStatus"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const videoElement = document.getElementById("videoElement");
+      const permissionButton = document.getElementById("permissionButton");
+      const startButton = document.getElementById("startButton");
+      const permissionStatus = document.getElementById("permissionStatus");
+      let mediaRecorder;
+      let stream;
+
+      permissionButton.addEventListener("click", requestPermission);
+      startButton.addEventListener("click", startStreaming);
+
+      async function requestPermission() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+          videoElement.srcObject = stream;
+          permissionStatus.textContent = "Camera permission granted!";
+          permissionStatus.className = "success";
+          permissionButton.disabled = true;
+          startButton.disabled = false;
+        } catch (err) {
+          console.error("Error accessing camera: ", err);
+          permissionStatus.textContent =
+            "Failed to get camera permission. Please check your browser settings.";
+          permissionStatus.className = "error";
+        }
+      }
+
+      async function startStreaming() {
+        if (!stream) {
+          permissionStatus.textContent =
+            "Please grant camera permission first.";
+          permissionStatus.className = "error";
+          return;
+        }
+
+        try {
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: "video/webm;codecs=vp9",
+          });
+
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              socket.emit("video-stream", event.data);
+            }
+          };
+
+          mediaRecorder.start(100); // Send video data in small chunks every 100ms
+          startButton.disabled = true;
+          startButton.textContent = "Streaming...";
+          permissionStatus.textContent = "Streaming started!";
+          permissionStatus.className = "success";
+        } catch (err) {
+          console.error("Error starting stream: ", err);
+          permissionStatus.textContent =
+            "Error starting stream. Please try again.";
+          permissionStatus.className = "error";
+        }
+      }
+    </script>
+  </body>
+</html>

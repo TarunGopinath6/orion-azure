@@ -1,0 +1,4 @@
+{
+  "appService.defaultWebAppToDeploy": "undefined/subscriptions/9155a655-af88-41af-8c03-ba6f844a4e4a/resourceGroups/orion-azure/providers/Microsoft.Web/sites/orion-azure",
+  "appService.deploySubpath": "."
+}

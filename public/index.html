@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Stream</title>
+  </head>
+  <body>
+    <h1>Live Video Stream</h1>
+    <video id="video" width="640" height="480" autoplay playsinline></video>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const videoElement = document.getElementById("video");
+      const socket = io();
+      let mediaSource;
+      let sourceBuffer;
+
+      if ("MediaSource" in window) {
+        mediaSource = new MediaSource();
+        videoElement.src = URL.createObjectURL(mediaSource);
+
+        mediaSource.addEventListener("sourceopen", sourceOpen);
+      } else {
+        console.error("MediaSource API is not supported in your browser");
+      }
+
+      function sourceOpen() {
+        sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp9"');
+
+        socket.on("video-feed", (data) => {
+          if (sourceBuffer.updating || mediaSource.readyState !== "open") {
+            return;
+          }
+          sourceBuffer.appendBuffer(data);
+        });
+      }
+    </script>
+  </body>
+</html>
