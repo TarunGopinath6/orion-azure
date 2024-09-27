@@ -83,7 +83,7 @@
             }
           };
 
-          mediaRecorder.start(100); // Send video data in small chunks every 100ms
+          mediaRecorder.start(50); // Send video data in small chunks every 100ms
           startButton.disabled = true;
           startButton.textContent = "Streaming...";
           permissionStatus.textContent = "Streaming started!";

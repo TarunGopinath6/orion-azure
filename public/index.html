@@ -57,13 +57,13 @@
         height: 100%;
         background-color: #000;
       }
-      .graphs {
+      .graphs-old {
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         flex: 0 0 60%;
       }
-      .graph {
+      .graph-old {
         background-color: #2c2c2c;
         padding: 5px;
         border-radius: 5px;
@@ -97,6 +97,59 @@
         border-radius: 5px;
         overflow-y: auto;
       }
+      .time-eta {
+        text-align: right;
+      }
+      .eta {
+        background-color: #4a4a4a;
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        margin-top: 5px;
+        font-size: 0.9em;
+        text-align: center;
+      }
+      .graphs {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        flex: 0 0 60%;
+      }
+      .graph {
+        background-color: #2c2c2c;
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+      }
+      svg {
+        display: block;
+        margin-top: 5px;
+      }
+      path {
+        stroke-width: 2;
+        fill: none;
+      }
+      /* .graph svg {
+        width: 100%;
+        height: 50px;
+      }
+      .graph path {
+        stroke-width: 2;
+        fill: none;
+        vector-effect: non-scaling-stroke;
+      } */
+      #ecg-graph path {
+        stroke: #00ff00;
+      }
+      #bp-graph path {
+        stroke: #ff9900;
+      }
+      #sv-graph path {
+        stroke: #3366cc;
+      }
+      #spo2-graph path {
+        stroke: #ff3366;
+      }
     </style>
   </head>
   <body>
@@ -109,7 +162,11 @@
         <span>CHALS4131</span>
         <span>TN09CX7799</span>
       </div>
-      <div id="timestamp"></div>
+      <!-- <div id="timestamp"></div> -->
+      <div class="time-eta">
+        <div id="timestamp"></div>
+        <div id="eta" class="eta">ETA: 8m</div>
+      </div>
     </div>
 
     <div class="main-content">
@@ -129,7 +186,7 @@
         </div>
       </div>
       <div class="right-column">
-        <div class="graphs">
+        <!-- <div class="graphs">
           <div class="graph" id="ecg">
             ECG: <span id="ecg-value">68</span> BPM
           </div>
@@ -140,7 +197,26 @@
           <div class="graph" id="spo2">
             SpO2: <span id="spo2-value">98</span>%
           </div>
+        </div> -->
+        <div class="graphs">
+          <div class="graph">
+            <div>ECG: <span id="ecg-value">68</span> BPM</div>
+            <svg id="ecg-graph" width="100%" height="50"></svg>
+          </div>
+          <div class="graph">
+            <div>BP: <span id="bp-value">115/70</span> mmHg</div>
+            <svg id="bp-graph" width="100%" height="50"></svg>
+          </div>
+          <div class="graph">
+            <div>SV: <span id="sv-value">13.2</span></div>
+            <svg id="sv-graph" width="100%" height="50"></svg>
+          </div>
+          <div class="graph">
+            <div>SpO2: <span id="spo2-value">98</span>%</div>
+            <svg id="spo2-graph" width="100%" height="50"></svg>
+          </div>
         </div>
+
         <div class="symptoms">
           <div class="symptom" style="background-color: #ffa500">
             Consciousness
@@ -160,7 +236,6 @@
             Central Revenue Quarters, 15, Chandre Mouleeshwarar Temple Rd,
             Ranganathan Garden, Anna Nagar, Chennai, Tamil Nadu 600040
           </p>
-          <p>8m</p>
         </div>
       </div>
     </div>
@@ -203,32 +278,209 @@
       });
 
       // Update timestamp
+      // function updateTimestamp() {
+      //   const now = new Date();
+      //   document.getElementById("timestamp").textContent = now.toLocaleString();
+      // }
+
+      let etaMinutes = 8;
+      let lastMinute = new Date().getMinutes();
+
       function updateTimestamp() {
         const now = new Date();
         document.getElementById("timestamp").textContent = now.toLocaleString();
+
+        // Check if a minute has passed
+        if (now.getMinutes() !== lastMinute) {
+          lastMinute = now.getMinutes();
+          if (etaMinutes > 0) {
+            etaMinutes--;
+            document.getElementById("eta").textContent = `ETA: ${etaMinutes}m`;
+          }
+        }
       }
 
       updateTimestamp();
       setInterval(updateTimestamp, 1000);
 
-      // Simulated vital signs update (replace with actual data feed)
-      function updateVitalSigns() {
-        document.getElementById("ecg-value").textContent = Math.floor(
-          Math.random() * (80 - 60) + 60
-        );
-        document.getElementById("bp-value").textContent = `${Math.floor(
-          Math.random() * (140 - 100) + 100
-        )}/${Math.floor(Math.random() * (90 - 60) + 60)}`;
-        document.getElementById("sv-value").textContent = (
-          Math.random() * (15 - 10) +
-          10
-        ).toFixed(1);
-        document.getElementById("spo2-value").textContent = Math.floor(
-          Math.random() * (100 - 95) + 95
-        );
+      const graphWidth = 300;
+      const graphHeight = 50;
+      const pointCount = 100;
+
+      function initGraph(id, color) {
+        const svg = document.getElementById(id);
+        svg.innerHTML = `<path d="M0 ${graphHeight / 2}" />`;
+        return svg.querySelector("path");
       }
 
-      setInterval(updateVitalSigns, 5000);
+      const ecgPath = initGraph("ecg-graph", "#00ff00");
+      const bpPath = initGraph("bp-graph", "#ff9900");
+      const svPath = initGraph("sv-graph", "#3366cc");
+      const spo2Path = initGraph("spo2-graph", "#ff3366");
+
+      function updateGraph(path, value, min, max) {
+        const points = path.getAttribute("d").split(" ");
+        points.push(
+          `L${points.length} ${
+            graphHeight - ((value - min) / (max - min)) * graphHeight
+          }`
+        );
+        if (points.length > pointCount) {
+          points.splice(1, points.length - pointCount);
+          for (let i = 1; i < points.length; i++) {
+            let [x, y] = points[i].split(",");
+            points[i] = `L${i - 1},${y}`;
+          }
+        }
+        path.setAttribute("d", points.join(" "));
+      }
+
+      function updateVitalSigns() {
+        const ecg = Math.floor(Math.random() * (80 - 60) + 60);
+        const bp = Math.floor(Math.random() * (140 - 100) + 100);
+        const sv = (Math.random() * (15 - 10) + 10).toFixed(1);
+        const spo2 = Math.floor(Math.random() * (100 - 95) + 95);
+
+        document.getElementById("ecg-value").textContent = ecg;
+        document.getElementById("bp-value").textContent = `${bp}/${Math.floor(
+          bp * 0.6
+        )}`;
+        document.getElementById("sv-value").textContent = sv;
+        document.getElementById("spo2-value").textContent = spo2;
+
+        updateGraph(ecgPath, ecg, 50, 90);
+        updateGraph(bpPath, bp, 90, 150);
+        updateGraph(svPath, sv, 8, 17);
+        updateGraph(spo2Path, spo2, 90, 100);
+      }
+      setInterval(updateVitalSigns, 3000);
+
+      // const graphWidth = 800;
+      // const graphHeight = 50;
+      // const pointCount = 10;
+
+      // function initGraph(id) {
+      //   const svg = document.getElementById(id);
+      //   svg.setAttribute("viewBox", `0 0 ${graphWidth} ${graphHeight}`);
+      //   svg.innerHTML = `<path d="M0 ${graphHeight / 2}" />`;
+      //   return svg.querySelector("path");
+      // }
+
+      // const ecgPath = initGraph("ecg-graph");
+      // const bpPath = initGraph("bp-graph");
+      // const svPath = initGraph("sv-graph");
+      // const spo2Path = initGraph("spo2-graph");
+
+      // function updateGraph(path, value, min, max) {
+      //   const points = path.getAttribute("d").split(" ");
+      //   const x = (points.length - 1) * (graphWidth / (pointCount - 1));
+      //   const y = graphHeight - ((value - min) / (max - min)) * graphHeight;
+      //   points.push(`L${x} ${y}`);
+
+      //   if (points.length > pointCount) {
+      //     points.splice(1, 1);
+      //     for (let i = 1; i < points.length; i++) {
+      //       let [, y] = points[i].split(" ");
+      //       const newX = (i - 1) * (graphWidth / (pointCount - 1));
+      //       points[i] = `L${newX} ${y}`;
+      //     }
+      //   }
+
+      //   path.setAttribute("d", points.join(" "));
+      // }
+
+      // // Simulated patient state
+      // let patientState = {
+      //   baseHeartRate: 75,
+      //   baseSystolic: 120,
+      //   baseDiastolic: 80,
+      //   baseStrokeVolume: 70,
+      //   baseSpO2: 98,
+      //   stress: 0,
+      //   time: 0,
+      // };
+
+      // function simulateECG() {
+      //   const stress = Math.sin(patientState.time / 10) * 10;
+      //   patientState.baseHeartRate = Math.max(
+      //     60,
+      //     Math.min(
+      //       100,
+      //       patientState.baseHeartRate + (Math.random() - 0.5) + stress / 10
+      //     )
+      //   );
+      //   return Math.round(patientState.baseHeartRate);
+      // }
+
+      // function simulateBP() {
+      //   const stress = Math.sin(patientState.time / 15) * 5;
+      //   patientState.baseSystolic = Math.max(
+      //     100,
+      //     Math.min(
+      //       140,
+      //       patientState.baseSystolic + (Math.random() - 0.5) * 2 + stress
+      //     )
+      //   );
+      //   patientState.baseDiastolic = Math.max(
+      //     60,
+      //     Math.min(
+      //       90,
+      //       patientState.baseDiastolic + (Math.random() - 0.5) * 2 + stress / 2
+      //     )
+      //   );
+      //   return {
+      //     systolic: Math.round(patientState.baseSystolic),
+      //     diastolic: Math.round(patientState.baseDiastolic),
+      //   };
+      // }
+
+      // function simulateSV() {
+      //   const stress = Math.sin(patientState.time / 12) * 3;
+      //   patientState.baseStrokeVolume = Math.max(
+      //     50,
+      //     Math.min(
+      //       100,
+      //       patientState.baseStrokeVolume + (Math.random() - 0.5) * 2 + stress
+      //     )
+      //   );
+      //   return patientState.baseStrokeVolume.toFixed(1);
+      // }
+
+      // function simulateSpO2() {
+      //   const stress = Math.sin(patientState.time / 20) * 0.5;
+      //   patientState.baseSpO2 = Math.max(
+      //     95,
+      //     Math.min(
+      //       100,
+      //       patientState.baseSpO2 + (Math.random() - 0.5) * 0.2 - stress
+      //     )
+      //   );
+      //   return Math.round(patientState.baseSpO2);
+      // }
+
+      // function updateVitalSigns() {
+      //   patientState.time++;
+
+      //   const ecg = simulateECG();
+      //   const bp = simulateBP();
+      //   const sv = simulateSV();
+      //   const spo2 = simulateSpO2();
+
+      //   document.getElementById("ecg-value").textContent = ecg;
+      //   document.getElementById(
+      //     "bp-value"
+      //   ).textContent = `${bp.systolic}/${bp.diastolic}`;
+      //   document.getElementById("sv-value").textContent = sv;
+      //   document.getElementById("spo2-value").textContent = spo2;
+
+      //   updateGraph(ecgPath, ecg, 50, 120);
+      //   updateGraph(bpPath, bp.systolic, 90, 160);
+      //   updateGraph(svPath, sv, 50, 110);
+      //   updateGraph(spo2Path, spo2, 90, 100);
+      // }
+
+      // // Update vital signs every 3 seconds
+      // setInterval(updateVitalSigns, 3000);
     </script>
   </body>
 </html>
